@@ -5,7 +5,7 @@ import * as bot from "../data/bot.json";
 import { promises as fs } from "fs";
 
 let prooflevels = bot.prooflevels as {
-	[key: string]: { emoji: string; description: string };
+	[key: string]: { emoji: string; description: string; provides?: string[] };
 };
 
 let client = new Discord.Client({ disableEveryone: true });
@@ -224,21 +224,21 @@ ${proofRequiredKeys
 							continue;
 						}
 						for (let prk of proofRequiredKey) {
-							let rolesToGiveOnProof = proofRequired[prk];
-							for (let roleID of rolesToGiveOnProof) {
-								finalRolesToGive.push(roleID);
-							}
-							proofRequired[prk] = [];
+							providedProof.push(prk);
 						}
 					}
 				}
-			} else {
-				for (let key of proofRequiredKeys) {
-					if (providedProof.indexOf(key) > -1) {
-						finalRolesToGive.push(...proofRequired[key]);
-						proofRequired[key] = [];
-					} else {
-					}
+			}
+			let indirectAndProvidedProof: string[] = []; // could be flatmap but worried about support
+			providedProof.forEach(provp => {
+				indirectAndProvidedProof.push(provp);
+				indirectAndProvidedProof.push(...(prooflevels[provp].provides || []));
+			});
+			for (let key of proofRequiredKeys) {
+				if (indirectAndProvidedProof.indexOf(key) > -1) {
+					finalRolesToGive.push(...proofRequired[key]);
+					proofRequired[key] = [];
+				} else {
 				}
 			}
 			for (let finalRoleToGive of finalRolesToGive) {
