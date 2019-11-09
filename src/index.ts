@@ -75,6 +75,11 @@ client.on("message", async m => {
 				.map(rid => m.guild!.roles.get(rid)!)
 				.map(r => (r.mentionable ? "@" + r.name : r.toString()));
 
+		if (m.content.toLowerCase().startsWith("!die")) {
+			await m.reply("rip");
+			process.exit(1);
+		}
+
 		if (m.content.toLowerCase().startsWith("!rank")) {
 			if (!m.member!.hasPermission("MANAGE_ROLES")) {
 				m.reply(
