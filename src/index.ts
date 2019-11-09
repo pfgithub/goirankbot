@@ -208,6 +208,7 @@ ${proofRequiredKeys
 							await giveRolesTo.roles.add(m.guild!.roles.get(roleID)!);
 							gaveRoles.push(roleID);
 						}
+						proofRequired[prk] = [];
 					}
 				}
 			}
@@ -219,7 +220,8 @@ ${proofRequiredKeys
 				ranker: m.author.id,
 				messageId: m.id
 			});
-			return await m.channel.send(
+			let finalMsg = [];
+			finalMsg.push(
 				giveRolesTo.toString() +
 					", " +
 					m.author.toString() +
@@ -227,6 +229,19 @@ ${proofRequiredKeys
 					roleListToString(gaveRoles) +
 					"."
 			);
+			for (let abc of proofRequiredKeys) {
+				let proofRequiredVal = proofRequired[abc];
+				if (proofRequiredVal.length > -1) {
+					finalMsg.push(
+						"> For " +
+							roleListToString(proofRequiredVal) +
+							", you need to provide proof: " +
+							abc
+					);
+				}
+			}
+			await m.channel.send(finalMsg.join("\n"));
+			return;
 		}
 	} catch (e) {
 		console.log(e);
