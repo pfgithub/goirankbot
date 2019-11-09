@@ -106,7 +106,7 @@ client.on("message", async m => {
 				.join(" ")
 				.split(",")
 				.map(q => q.trim());
-			for (let param in paramsv) {
+			for (let param of paramsv) {
 				let rankStr = param;
 				let rankStrArr = rankStr.split(" ");
 
@@ -235,8 +235,8 @@ ${proofRequiredKeys
 					}
 				}
 			}
-			await m.channel.startTyping();
 			for (let finalRoleToGive of finalRolesToGive) {
+				console.log(finalRoleToGive);
 				await giveRolesTo.roles.add(m.guild!.roles.get(finalRoleToGive)!);
 			}
 			log({
@@ -258,7 +258,7 @@ ${proofRequiredKeys
 			);
 			for (let abc of proofRequiredKeys) {
 				let proofRequiredVal = proofRequired[abc];
-				if (proofRequiredVal.length > -1) {
+				if (proofRequiredVal.length > 0) {
 					finalMsg.push(
 						"> For " +
 							roleListToString(proofRequiredVal) +
