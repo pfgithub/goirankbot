@@ -96,9 +96,10 @@ client.on("message", async m => {
 			// eg: 5 wins
 			// eg: gold pot
 			let rolesToGive: { roleID: string; proof: string }[] = [];
-			let time = rankStr.match(/([0-9]+?)h:([0-9]+?)m:([0-9]+?).([0-9]+?)s/);
+			let time = rankStr.match(/(?:([0-9]+?)h:)?([0-9]+?)m:([0-9]+?).([0-9]+?)s/);
 			if (time) {
 				let [, hrs, mins, secs, ms] = time;
+				if (!hrs) hrs = "0";
 				let timeNumber = +hrs * 60 * 60 * 1000 + +mins * 60 * 1000 + +secs * 1000 + +ms;
 				bot.ranks.time.forEach(r => {
 					let rTimeNumber =
