@@ -4,6 +4,10 @@ import * as bot from "../data/bot.json";
 
 import { promises as fs } from "fs";
 
+let prooflevels = bot.prooflevels as {
+	[key: string]: { emoji: string; description: string };
+};
+
 let client = new Discord.Client({ disableEveryone: true });
 
 let goiGuild: Discord.Guild;
@@ -172,13 +176,13 @@ client.on("message", async m => {
 			let proofRequiredKeys = Object.keys(proofRequired);
 			let proofRequiredEmojiNameMap: { [prkey: string]: string[] } = {};
 			let proofRequiredEmojis = proofRequiredKeys.map(prkey => {
-				let res =
-					(bot.prooflevels as { [key: string]: string })[prkey] || bot.prooflevels["*"];
-				if (!proofRequiredEmojiNameMap[res.match(/[0-9]{16,}/)![0]]) {
-					proofRequiredEmojiNameMap[res.match(/[0-9]{16,}/)![0]] = [];
+				let res = prooflevels[prkey];
+				let emojid = res.emoji.match(/[0-9]{16,}/)![0];
+				if (!proofRequiredEmojiNameMap[emojid]) {
+					proofRequiredEmojiNameMap[emojid] = [];
 				}
-				proofRequiredEmojiNameMap[res.match(/[0-9]{16,}/)![0]].push(prkey);
-				return res;
+				proofRequiredEmojiNameMap[emojid].push(prkey);
+				return res.emoji;
 			});
 			let finalRolesToGive: string[] = [];
 			if (providedProof.length === 0) {
@@ -188,10 +192,12 @@ ${proofRequiredKeys
 		(prkey, i) =>
 			"> - " +
 			proofRequiredEmojis[i] +
-			": [" +
+			" [" +
 			prkey +
 			"] for " +
-			roleListToString(proofRequired[prkey])
+			roleListToString(proofRequired[prkey]) +
+			"  - requires proof: " +
+			prooflevels[prkey].description
 	)
 	.join("\n")}`);
 				let waitForReaction = reacted({
@@ -256,14 +262,14 @@ ${proofRequiredKeys
 					roleListToString(finalRolesToGive) +
 					"."
 			);
-			for (let abc of proofRequiredKeys) {
-				let proofRequiredVal = proofRequired[abc];
+			for (let proofLevelName of proofRequiredKeys) {
+				let proofRequiredVal = proofRequired[proofLevelName];
 				if (proofRequiredVal.length > 0) {
 					finalMsg.push(
 						"> For " +
 							roleListToString(proofRequiredVal) +
 							", you need to provide proof: " +
-							abc
+							prooflevels[proofLevelName].description
 					);
 				}
 			}
