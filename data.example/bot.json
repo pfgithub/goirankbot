@@ -1,0 +1,25 @@
+{
+	"token": "bot token",
+	"server": "server id",
+	"channel": "channel id",
+	"goemoji": "<:goemoji:id>",
+	"prooflevels": {
+		"prooftype": "<:prooftypeemoji:id>",
+		"*": "<:proofemoji:id>"
+	},
+	"ranks": {
+		"time": [
+			{ "time": ["hrs", "mins", "secs", "ms"], "id": "role id", "proof": "prooftype" }
+		],
+		"wins": [
+			{
+				"wins": "#wins",
+				"id": "id software",
+				"proof": "screenshot of upside down tomato"
+			}
+		],
+		"other": [
+			{ "name": "bad", "id": "role id", "proof": "user requested" }
+		]
+	}
+}
