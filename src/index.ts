@@ -50,7 +50,7 @@ let logFile: fs.FileHandle;
 
 async function log(o: {
 	ranks: string[];
-	cmd: string;
+	cmd: string[];
 	time: number;
 	user: string;
 	ranker: string;
@@ -75,9 +75,10 @@ client.on("message", async m => {
 				.map(rid => m.guild!.roles.get(rid)!)
 				.map(r => (r.mentionable ? "@" + r.name : r.toString()));
 
-		if (m.content.toLowerCase().startsWith("!die")) {
-			await m.reply("rip");
+		if (m.content.toLowerCase().startsWith("!update")) {
+			await m.reply("brb");
 			process.exit(1);
+			throw new Error("didn't update");
 		}
 
 		if (m.content.toLowerCase().startsWith("!rank")) {
@@ -87,7 +88,7 @@ client.on("message", async m => {
 				);
 				return;
 			}
-			let [, userStr, ...rankStrArr] = m.content.replace(/ +/g, " ").split(" ");
+			let [, userStr, ...params] = m.content.replace(/ +/g, " ").split(" ");
 			let userID = userStr.match(/[0-9]{16,}/);
 			if (!userID) {
 				await m.reply(
@@ -96,40 +97,52 @@ client.on("message", async m => {
 				return;
 			}
 			let giveRolesTo = m.guild!.members.get(userID[0])!;
-			let rankStr = rankStrArr.join(" ");
 			// eg: 00h:13m:56.202s
 			// eg: 5 wins
 			// eg: gold pot
 			let rolesToGive: { roleID: string; proof: string }[] = [];
-			let time = rankStr.match(/(?:([0-9]+?)h:)?([0-9]+?)m:([0-9]+?).([0-9]+?)s/);
-			if (time) {
-				let [, hrs, mins, secs, ms] = time;
-				if (!hrs) hrs = "0";
-				let timeNumber = +hrs * 60 * 60 * 1000 + +mins * 60 * 1000 + +secs * 1000 + +ms;
-				bot.ranks.time.forEach(r => {
-					let rTimeNumber =
-						+r.time[0] * 60 * 60 * 1000 +
-						+r.time[1] * 60 * 1000 +
-						+r.time[2] * 1000 +
-						+r.time[3];
-					if (rTimeNumber > timeNumber) {
-						rolesToGive.push({ roleID: r.id, proof: r.proof });
-					}
-				});
-			} else if (rankStr.toLowerCase().endsWith(" wins") && rankStrArr.length === 2) {
-				let [wins] = rankStrArr;
-				bot.ranks.wins.forEach(w => {
-					if (w.wins <= +wins) {
-						rolesToGive.push({ roleID: w.id, proof: w.proof });
-					}
-				});
-			} else {
-				bot.ranks.other.forEach(w => {
-					if (w.name === rankStr.toLowerCase()) {
-						rolesToGive.push({ roleID: w.id, proof: w.proof });
-					}
-				});
+			let providedProof: string[] = [];
+			let paramsv = params
+				.join(" ")
+				.split(",")
+				.map(q => q.trim());
+			for (let param in paramsv) {
+				let rankStr = param;
+				let rankStrArr = rankStr.split(" ");
+
+				let time = rankStr.match(/(?:([0-9]+?)h:)?([0-9]+?)m:([0-9]+?).([0-9]+?)s/);
+				if (time) {
+					let [, hrs, mins, secs, ms] = time;
+					if (!hrs) hrs = "0";
+					let timeNumber = +hrs * 60 * 60 * 1000 + +mins * 60 * 1000 + +secs * 1000 + +ms;
+					bot.ranks.time.forEach(r => {
+						let rTimeNumber =
+							+r.time[0] * 60 * 60 * 1000 +
+							+r.time[1] * 60 * 1000 +
+							+r.time[2] * 1000 +
+							+r.time[3];
+						if (rTimeNumber > timeNumber) {
+							rolesToGive.push({ roleID: r.id, proof: r.proof });
+						}
+					});
+				} else if (rankStr.toLowerCase().endsWith(" wins") && rankStrArr.length === 2) {
+					let [wins] = rankStrArr;
+					bot.ranks.wins.forEach(w => {
+						if (w.wins <= +wins) {
+							rolesToGive.push({ roleID: w.id, proof: w.proof });
+						}
+					});
+				} else if (rankStr.toLowerCase().startsWith("proof:")) {
+					providedProof.push(rankStr.substr(6));
+				} else {
+					bot.ranks.other.forEach(w => {
+						if (w.name === rankStr.toLowerCase()) {
+							rolesToGive.push({ roleID: w.id, proof: w.proof });
+						}
+					});
+				}
 			}
+
 			if (rolesToGive.length === 0) {
 				await m.reply(
 					"<:err:413863986166235176> No roles. See usage in <#417907409508368394>"
@@ -167,7 +180,9 @@ client.on("message", async m => {
 				proofRequiredEmojiNameMap[res.match(/[0-9]{16,}/)![0]].push(prkey);
 				return res;
 			});
-			let selProofMsg = await m.reply(`Select proofs
+			let finalRolesToGive: string[] = [];
+			if (providedProof.length === 0) {
+				let selProofMsg = await m.reply(`Select proofs
 ${proofRequiredKeys
 	.map(
 		(prkey, i) =>
@@ -179,42 +194,54 @@ ${proofRequiredKeys
 			roleListToString(proofRequired[prkey])
 	)
 	.join("\n")}`);
-			let waitForReaction = reacted({
-				user: m.author.id,
-				message: selProofMsg.id,
-				emoji: bot.goemoji.match(/[0-9]{16,}/)![0]
-			});
-			for (let emoji of proofRequiredEmojis) {
-				await selProofMsg.react(emoji.match(/[0-9]{16,}/)![0]);
-			}
-			await selProofMsg.react(bot.goemoji.match(/[0-9]{16,}/)![0]);
-			waitForReaction.startTimeout(10 * 1000);
-			let reactionDone = await waitForReaction.done();
-			if (reactionDone === "timeout") {
-				await selProofMsg.reactions.removeAll();
-				return await m.reply("Too slow.");
-			}
-			let msgReactions = selProofMsg.reactions;
-			let gaveRoles: string[] = [];
-			for (let [id, reaction] of msgReactions) {
-				if (reaction.users.has(m.author.id)) {
-					let proofRequiredKey = proofRequiredEmojiNameMap[reaction.emoji.id!];
-					if (!proofRequiredKey) {
-						continue;
-					}
-					for (let prk of proofRequiredKey) {
-						let rolesToGiveOnProof = proofRequired[prk];
-						for (let roleID of rolesToGiveOnProof) {
-							await giveRolesTo.roles.add(m.guild!.roles.get(roleID)!);
-							gaveRoles.push(roleID);
+				let waitForReaction = reacted({
+					user: m.author.id,
+					message: selProofMsg.id,
+					emoji: bot.goemoji.match(/[0-9]{16,}/)![0]
+				});
+				for (let emoji of proofRequiredEmojis) {
+					await selProofMsg.react(emoji.match(/[0-9]{16,}/)![0]);
+				}
+				await selProofMsg.react(bot.goemoji.match(/[0-9]{16,}/)![0]);
+				waitForReaction.startTimeout(10 * 1000);
+				let reactionDone = await waitForReaction.done();
+				if (reactionDone === "timeout") {
+					await selProofMsg.reactions.removeAll();
+					return await m.reply("Too slow.");
+				}
+				let msgReactions = selProofMsg.reactions;
+				let gaveRoles: string[] = [];
+				for (let [id, reaction] of msgReactions) {
+					if (reaction.users.has(m.author.id)) {
+						let proofRequiredKey = proofRequiredEmojiNameMap[reaction.emoji.id!];
+						if (!proofRequiredKey) {
+							continue;
 						}
-						proofRequired[prk] = [];
+						for (let prk of proofRequiredKey) {
+							let rolesToGiveOnProof = proofRequired[prk];
+							for (let roleID of rolesToGiveOnProof) {
+								finalRolesToGive.push(roleID);
+							}
+							proofRequired[prk] = [];
+						}
+					}
+				}
+			} else {
+				for (let key of proofRequiredKeys) {
+					if (providedProof.indexOf(key) > -1) {
+						finalRolesToGive.push(...proofRequired[key]);
+						proofRequired[key] = [];
+					} else {
 					}
 				}
 			}
+			await m.channel.startTyping();
+			for (let finalRoleToGive of finalRolesToGive) {
+				await giveRolesTo.roles.add(m.guild!.roles.get(finalRoleToGive)!);
+			}
 			log({
-				ranks: gaveRoles,
-				cmd: rankStr,
+				ranks: finalRolesToGive,
+				cmd: paramsv,
 				time: new Date().getTime(),
 				user: giveRolesTo.id,
 				ranker: m.author.id,
@@ -226,7 +253,7 @@ ${proofRequiredKeys
 					", " +
 					m.author.toString() +
 					" gave you roles " +
-					roleListToString(gaveRoles) +
+					roleListToString(finalRolesToGive) +
 					"."
 			);
 			for (let abc of proofRequiredKeys) {
