@@ -1,6 +1,7 @@
 import * as Discord from "discord.js";
 
 import * as bot from "../data/bot.json";
+import * as token from "../data/token.json";
 
 import { promises as fs } from "fs";
 
@@ -65,13 +66,11 @@ async function log(o: {
 
 client.on("message", async m => {
 	if (m.partial) {
-		// await m.fetch(); // typescript doesn't like this without return after which is pointless
+		// await m.fetch(); // it should be possible to fake typescript out with (() => 0 as never)()
 		console.log("PARTIAL MESSAGE SENT", m);
 		return;
 	}
 	if (m.author.bot) return;
-	if (m.channel.id !== bot.channel && m.channel.id !== "426520584881569821")
-		return;
 
 	try {
 		let roleListToString = (roleList: string[]) =>
@@ -119,6 +118,9 @@ client.on("message", async m => {
 					let [, hrs, mins, secs, ms] = time;
 					if (!hrs) hrs = "0";
 					let timeNumber = +hrs * 60 * 60 * 1000 + +mins * 60 * 1000 + +secs * 1000 + +ms;
+					paramsv.push(timeNumber + "ms");
+				} else if (rankStr.toLowerCase().endsWith("ms")) {
+					let timeNumber = parseInt(rankStr, 10); // ignores trailing characters for some reason.
 					bot.ranks.time.forEach(r => {
 						let rTimeNumber =
 							+r.time[0] * 60 * 60 * 1000 +
@@ -137,7 +139,14 @@ client.on("message", async m => {
 						}
 					});
 				} else if (rankStr.toLowerCase().startsWith("proof:")) {
-					providedProof.push(rankStr.substr(6));
+					providedProof.push(rankStr.substr(6).trim());
+				} else if (rankStr.toLowerCase().startsWith("sub")) {
+					let timeNumber = +rankStr
+						.substr(3)
+						.trim()
+						.replace(/[^a-z0-9.]/g, "");
+					let timeMS = timeNumber * 60 * 1000;
+					paramsv.push(timeMS + "ms");
 				} else {
 					bot.ranks.other.forEach(w => {
 						if (w.name === rankStr.toLowerCase()) {
@@ -228,6 +237,7 @@ ${proofRequiredKeys
 						}
 					}
 				}
+				await selProofMsg.delete();
 			}
 			let indirectAndProvidedProof: string[] = []; // could be flatmap but worried about support
 			providedProof.forEach(provp => {
@@ -290,4 +300,4 @@ client.on("messageReactionAdd", (reaction, who) => {
 	}
 });
 
-client.login(bot.token);
+client.login(token);

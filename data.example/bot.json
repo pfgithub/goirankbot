@@ -1,5 +1,4 @@
 {
-	"token": "bot token",
 	"server": "server id",
 	"channel": "channel id",
 	"goemoji": "<:goemoji:id>",
@@ -18,8 +17,6 @@
 				"proof": "screenshot of upside down tomato"
 			}
 		],
-		"other": [
-			{ "name": "bad", "id": "role id", "proof": "user requested" }
-		]
+		"other": [{ "name": "bad", "id": "role id", "proof": "user requested" }]
 	}
 }

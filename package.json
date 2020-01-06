@@ -1,14 +1,14 @@
 {
-  "name": "goirankbot",
-  "version": "1.0.0",
-  "main": "src/index.js",
-  "license": "MIT",
-  "dependencies": {
-    "discord.js": "discordjs/discord.js"
-  },
-  "devDependencies": {
-    "@types/node": "^12.12.7",
-    "ts-node": "^8.4.1",
-    "typescript": "^3.7.2"
-  }
+	"name": "goirankbot",
+	"version": "1.0.0",
+	"main": "src/index.js",
+	"license": "MIT",
+	"dependencies": {
+		"discord.js": "discordjs/discord.js"
+	},
+	"devDependencies": {
+		"@types/node": "^12.12.7",
+		"ts-node": "^8.4.1",
+		"typescript": "^3.7.2"
+	}
 }
