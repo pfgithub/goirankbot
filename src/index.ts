@@ -146,7 +146,7 @@ client.on("message", async m => {
 						.trim()
 						.replace(/[^a-z0-9.]/g, "");
 					let timeMS = timeNumber * 60 * 1000;
-					paramsv.push(timeMS + "ms");
+					paramsv.push(timeMS - 1 + "ms");
 				} else {
 					bot.ranks.other.forEach(w => {
 						if (w.name === rankStr.toLowerCase()) {
@@ -221,7 +221,7 @@ ${proofRequiredKeys
 				waitForReaction.startTimeout(10 * 1000);
 				let reactionDone = await waitForReaction.done();
 				if (reactionDone === "timeout") {
-					await selProofMsg.reactions.removeAll();
+					await selProofMsg.delete();
 					return await m.reply("Too slow.");
 				}
 				let msgReactions = selProofMsg.reactions;
